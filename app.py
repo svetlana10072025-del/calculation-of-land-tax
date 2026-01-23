@@ -13,28 +13,38 @@ def load_data():
 try:
     df = load_data()
 except FileNotFoundError:
-    st.error("Файл 'Налоги_таблицы.xlsx' не найден. Загрузите его в папку с приложением.")
+    st.error("Файл 'Налоги_таблицы.xlsx' не найден.")
+    st.stop()
+except Exception as e:
+    st.error(f"Ошибка при загрузке Excel: {e}")
     st.stop()
 
-# Уникальные категории и классы
+# Уникальные категории — можно сортировать
 categories = sorted(df["Категория сельхозугодий"].unique())
-classes = sorted(df["Кадастровая оценка земель (общий балл)"].unique())
+
+# Классы — сохраняем ПОРЯДОК из таблицы (без sort!)
+seen = set()
+classes = []
+for val in df["Кадастровая оценка земель (общий балл)"]:
+    if val not in seen:
+        classes.append(val)
+        seen.add(val)
 
 # Ввод пользователя
 st.subheader("Выберите параметры сельхозугодий")
 
 col1, col2 = st.columns(2)
 with col1:
-    category = st.selectbox("Категория угодий", categories)
+    category = st.selectbox("Категория сельхозугодий", categories)
 with col2:
-    klass = st.selectbox("Класс кадастровой оценки", classes)
+    klass = st.selectbox("Кадастровая оценка земель (общий балл)", classes)
 
 area = st.number_input("Площадь, га", min_value=0.1, value=1.0, step=0.1)
 
 # Поиск ставок
 match = df[
     (df["Категория сельхозугодий"] == category) &
-    (df["Кадастровская оценка земель (общий балл)"] == klass)
+    (df["Кадастровая оценка земель (общий балл)"] == klass)
 ]
 
 if match.empty:
