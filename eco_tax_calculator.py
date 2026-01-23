@@ -13,9 +13,15 @@ def load_sheet(sheet_name):
         st.stop()
 
 # Загрузка данных
+# Загрузка данных
 df_air = load_sheet("Эконалог_воздух")
 df_water = load_sheet("Эконалог_сточные")
 df_waste = load_sheet("Эконалог_захоронение")
+
+# Очистка названий колонок от пробелов и невидимых символов
+df_air.columns = df_air.columns.str.strip()
+df_water.columns = df_water.columns.str.strip()
+df_waste.columns = df_waste.columns.str.strip()
 
 # Обработка отходов: создаём понятные метки
 def format_waste_label(row):
@@ -97,3 +103,4 @@ with st.expander("Детали"):
     st.write(f"**Ставка 2025:** {stavka_2025} BYN/{unit}")
     st.write(f"**Ставка 2026:** {stavka_2026} BYN/{unit}")
     st.write(f"**Объём:** {quantity} {unit}")
+
