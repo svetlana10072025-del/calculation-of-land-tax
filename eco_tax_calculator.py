@@ -19,7 +19,7 @@ df_waste = load_sheet("Эконалог_захоронение")
 
 # Обработка отходов: создаём понятные метки
 def format_waste_label(row):
-    category = row["Категория отходов"]
+    category = row["Категории отходов"]  # ← исправлено: "Категории", а не "Категория"
     specific = row["Конкретный вид отхода"]
     if pd.isna(specific) or str(specific).strip() == "":
         return category
@@ -66,14 +66,10 @@ else:
     actions = df_waste["Способ обращения с отходами"].drop_duplicates().tolist()
     selected_action = st.selectbox("Способ обращения с отходами", actions)
     
-    # Фильтруем по способу
     filtered = df_waste[df_waste["Способ обращения с отходами"] == selected_action]
-    
-    # Получаем список для выбора (уже с форматированными названиями)
     display_options = filtered["Отображаемое название"].drop_duplicates().tolist()
     selected_display = st.selectbox("Выберите отходы", display_options)
     
-    # Находим строку по отображаемому названию
     row = filtered[filtered["Отображаемое название"] == selected_display].iloc[0]
     stavka_2025 = row["Ставка_2025"]
     stavka_2026 = row["Ставка_2026"]
