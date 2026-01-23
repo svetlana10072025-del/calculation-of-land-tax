@@ -1,42 +1,71 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
+import re
 
 st.title("Калькулятор экологических налогов (Беларусь, 2026)")
 
-@st.cache_data
-def load_sheet(sheet_name):
-    try:
-        return pd.read_excel("Налоги_таблицы.xlsx", sheet_name=sheet_name)
-    except Exception as e:
-        st.error(f"Ошибка загрузки листа '{sheet_name}': {e}")
-        st.stop()
+# === Вспомогательные функции ===
 
-# Загрузка данных
-# Загрузка данных
-df_air = load_sheet("Эконалог_воздух")
-df_water = load_sheet("Эконалог_сточные")
-df_waste = load_sheet("Эконалог_захоронение")
+def clean_column_name(col):
+    """Очищает название колонки от невидимых символов и приводит к стандартному виду"""
+    if not isinstance(col, str):
+        col = str(col)
+    # Удаляем всё, кроме букв, цифр, пробелов и кириллицы
+    clean = re.sub(r'[^\w\s\u0400-\u04FF]', '', col)
+    clean = clean.strip()
+    # Заменяем пробелы и спецсимволы на подчёркивания для совместимости
+    clean = re.sub(r'\s+', '_', clean)
+    return clean
 
-# Очистка названий колонок от пробелов и невидимых символов
-df_air.columns = df_air.columns.str.strip()
-df_water.columns = df_water.columns.str.strip()
-df_waste.columns = df_waste.columns.str.strip()
+def safe_to_numeric(series):
+    """Преобразует серию в числовой формат, заменяя запятые на точки"""
+    series = series.astype(str).str.replace(',', '.')
+    return pd.to_numeric(series, errors='coerce')
 
-# Обработка отходов: создаём понятные метки
+# === Загрузка и очистка данных ===
+
+try:
+    # Загружаем все три листа
+    df_air_raw = pd.read_excel("Налоги_таблицы.xlsx", sheet_name="Эконалог_воздух")
+    df_water_raw = pd.read_excel("Налоги_таблицы.xlsx", sheet_name="Эконалог_сточные")
+    df_waste_raw = pd.read_excel("Налоги_таблицы.xlsx", sheet_name="Эконалог_захоронение")
+except Exception as e:
+    st.error(f"Не удалось загрузить Excel-файл: {e}")
+    st.stop()
+
+# Очищаем названия колонок
+df_air_raw.columns = [clean_column_name(col) for col in df_air_raw.columns]
+df_water_raw.columns = [clean_column_name(col) for col in df_water_raw.columns]
+df_waste_raw.columns = [clean_column_name(col) for col in df_waste_raw.columns]
+
+# Преобразуем ставки в числа
+for df in [df_air_raw, df_water_raw, df_waste_raw]:
+    if "Ставка_2025" in df.columns:
+        df["Ставка_2025"] = safe_to_numeric(df["Ставка_2025"])
+    if "Ставка_2026" in df.columns:
+        df["Ставка_2026"] = safe_to_numeric(df["Ставка_2026"])
+
+df_air = df_air_raw
+df_water = df_water_raw
+df_waste = df_waste_raw
+
+# === Обработка отходов: формируем понятные названия ===
 def format_waste_label(row):
-    category = row["Категории отходов"]  # ← исправлено: "Категории", а не "Категория"
-    specific = row["Конкретный вид отхода"]
-    if pd.isna(specific) or str(specific).strip() == "":
+    category = row.get("Категории_отходов", "") or ""
+    specific = row.get("Конкретный_вид_отхода", "") or ""
+    if not specific.strip():
         return category
     else:
         return f"{specific} ({category})"
 
-# Применяем форматирование
-df_waste = df_waste.copy()
-df_waste["Отображаемое название"] = df_waste.apply(format_waste_label, axis=1)
+# Применяем форматирование только если есть нужные колонки
+if "Категории_отходов" in df_waste.columns:
+    df_waste["Отображаемое_название"] = df_waste.apply(format_waste_label, axis=1)
+else:
+    st.error("В листе 'Эконалог_захоронение' не найдена колонка 'Категории отходов'")
+    st.stop()
 
-# Выбор типа налога
+# === Выбор типа налога ===
 tax_type = st.radio(
     "Выберите вид экологического налога",
     ["Выбросы в атмосферу", "Сброс сточных вод", "Обращение с отходами"],
@@ -47,46 +76,63 @@ st.markdown("---")
 
 # === 1. Выбросы в атмосферу ===
 if tax_type == "Выбросы в атмосферу":
+    if "Классы_опасности_выбросов" not in df_air.columns:
+        st.error("В листе 'Эконалог_воздух' не найдена колонка 'Классы опасности выбросов'")
+        st.stop()
+    
     st.subheader("Выбросы загрязняющих веществ в атмосферный воздух")
-    classes = df_air["Классы опасности выбросов"].drop_duplicates().tolist()
+    classes = df_air["Классы_опасности_выбросов"].dropna().unique().tolist()
     selected = st.selectbox("Класс опасности выбросов", classes)
-    row = df_air[df_air["Классы опасности выбросов"] == selected].iloc[0]
+    row = df_air[df_air["Классы_опасности_выбросов"] == selected].iloc[0]
     stavka_2025 = row["Ставка_2025"]
     stavka_2026 = row["Ставка_2026"]
     unit = "тонн"
 
 # === 2. Сброс сточных вод ===
 elif tax_type == "Сброс сточных вод":
-    st.subheader("Сброс загрязняющих веществ со сточными водами")
-    options = df_water["Куда сбрасываются сточные воды"].drop_duplicates().tolist()
+    col_name = "Куда_сбрасываются_сточные_воды"
+    if col_name not in df_water.columns:
+        st.error(f"В листе 'Эконалог_сточные' не найдена колонка 'Куда сбрасываются сточные воды'")
+        st.stop()
+    
+    st.subrowser("Сброс загрязняющих веществ со сточными водами")
+    options = df_water[col_name].dropna().unique().tolist()
     selected = st.selectbox("Куда сбрасываются сточные воды?", options)
-    row = df_water[df_water["Куда сбрасываются сточные воды"] == selected].iloc[0]
+    row = df_water[df_water[col_name] == selected].iloc[0]
     stavka_2025 = row["Ставка_2025"]
     stavka_2026 = row["Ставка_2026"]
     unit = "м³"
 
 # === 3. Обращение с отходами ===
 else:
-    st.subheader("Захоронение и использование отходов")
+    if "Способ_обращения_с_отходами" not in df_waste.columns:
+        st.error("В листе 'Эконалог_захоронение' не найдена колонка 'Способ обращения с отходами'")
+        st.stop()
     
-    actions = df_waste["Способ обращения с отходами"].drop_duplicates().tolist()
+    st.subheader("Захоронение и использование отходов")
+    actions = df_waste["Способ_обращения_с_отходами"].dropna().unique().tolist()
     selected_action = st.selectbox("Способ обращения с отходами", actions)
     
-    filtered = df_waste[df_waste["Способ обращения с отходами"] == selected_action]
-    display_options = filtered["Отображаемое название"].drop_duplicates().tolist()
+    filtered = df_waste[df_waste["Способ_обращения_с_отходами"] == selected_action]
+    display_options = filtered["Отображаемое_название"].dropna().unique().tolist()
     selected_display = st.selectbox("Выберите отходы", display_options)
     
-    row = filtered[filtered["Отображаемое название"] == selected_display].iloc[0]
+    row = filtered[filtered["Отображаемое_название"] == selected_display].iloc[0]
     stavka_2025 = row["Ставка_2025"]
     stavka_2026 = row["Ставка_2026"]
     unit = "тонн"
+
+# === Проверка числовых значений ===
+if pd.isna(stavka_2025) or pd.isna(stavka_2026):
+    st.error("Ошибка: ставка не является числом. Проверьте Excel-файл.")
+    st.stop()
 
 # === Расчёт ===
 st.markdown("---")
 quantity = st.number_input(f"Объём ({unit})", min_value=0.0, value=1.0, step=0.1)
 
-tax_2025 = stavka_2025 * quantity
-tax_2026 = stavka_2026 * quantity
+tax_2025 = float(stavka_2025) * quantity
+tax_2026 = float(stavka_2026) * quantity
 growth_abs = tax_2026 - tax_2025
 growth_pct = (growth_abs / tax_2025 * 100) if tax_2025 > 0 else 0
 
@@ -103,4 +149,3 @@ with st.expander("Детали"):
     st.write(f"**Ставка 2025:** {stavka_2025} BYN/{unit}")
     st.write(f"**Ставка 2026:** {stavka_2026} BYN/{unit}")
     st.write(f"**Объём:** {quantity} {unit}")
-
