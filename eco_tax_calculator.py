@@ -56,7 +56,7 @@ elif tax_type == "Сброс сточных вод":
 
 else:
     st.subheader("Отходы")
-    action = st.selectbox("Способ...", df_waste["Способ обращения с отходами"].unique())
+    action = st.selectbox("Способ обращения с отходами", df_waste["Способ обращения с отходами"].unique())
     filtered = df_waste[df_waste["Способ обращения с отходами"] == action]
     display = st.selectbox("Отходы", filtered["Отображаемое название"].unique())
     row = filtered[filtered["Отображаемое название"] == display].iloc[0]
@@ -82,4 +82,5 @@ col1, col2, col3 = st.columns(3)
 with col1: st.metric("Налог 2025", f"{tax_2025:.2f} BYN")
 with col2: st.metric("Налог 2026", f"{tax_2026:.2f} BYN")
 with col3: st.metric("Рост", f"{growth_abs:.2f} BYN", delta=f"+{growth_pct:.1f}%")
+
 
