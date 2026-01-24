@@ -44,21 +44,21 @@ tax_type = st.radio("Выберите вид экологического нал
 st.markdown("---")
 
 if tax_type == "Выбросы в атмосферу":
-    st.subheader("Выбросы...")
-    selected = st.selectbox("Класс...", df_air["Классы опасности выбросов"].unique())
+    st.subheader("Выбросы")
+    selected = st.selectbox("Класс выбросов", df_air["Классы опасности выбросов"].unique())
     row = df_air[df_air["Классы опасности выбросов"] == selected].iloc[0]
 
 elif tax_type == "Сброс сточных вод":
-    st.subheader("Сброс...")
+    st.subheader("Сброс сточных вод")
     col = "Куда сбрасываются сточные воды"
-    selected = st.selectbox("Куда...", df_water[col].unique())
+    selected = st.selectbox("Куда сбрасываются сточные воды", df_water[col].unique())
     row = df_water[df_water[col] == selected].iloc[0]
 
 else:
-    st.subheader("Отходы...")
+    st.subheader("Отходы")
     action = st.selectbox("Способ...", df_waste["Способ обращения с отходами"].unique())
     filtered = df_waste[df_waste["Способ обращения с отходами"] == action]
-    display = st.selectbox("Отходы...", filtered["Отображаемое название"].unique())
+    display = st.selectbox("Отходы", filtered["Отображаемое название"].unique())
     row = filtered[filtered["Отображаемое название"] == display].iloc[0]
 
 # Парсинг ставок
@@ -82,3 +82,4 @@ col1, col2, col3 = st.columns(3)
 with col1: st.metric("Налог 2025", f"{tax_2025:.2f} BYN")
 with col2: st.metric("Налог 2026", f"{tax_2026:.2f} BYN")
 with col3: st.metric("Рост", f"{growth_abs:.2f} BYN", delta=f"+{growth_pct:.1f}%")
+
