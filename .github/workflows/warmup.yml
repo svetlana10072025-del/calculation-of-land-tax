@@ -1,4 +1,4 @@
-
+# .github/workflows/warmup.yml
 name: Прогрев калькуляторов
 
 on:
@@ -9,17 +9,34 @@ on:
 jobs:
   warmup:
     runs-on: ubuntu-latest
+    timeout-minutes: 5  # Максимум 5 минут на весь workflow
     
     steps:
-    - name: Прогрев
+    - name: Быстрый прогрев
       run: |
-        # Просто отправляем запросы без проверки результата
-        curl -L "https://calculation-of-land-tax-4sx2mxfrtshecl77uvz7l6.streamlit.app/" & sleep 60
-        curl -L "https://calculation-eco-tax-xfu9rozazao4heudm3p6gz.streamlit.app/" & sleep 60
-        curl -L "https://calculation-of-excise-bnrlk8d8pnf4wpwhwvnpfj.streamlit.app/" & sleep 60
-        curl -L "https://calculation-of-mining-tax-jvospomyc4pgvpy8ubrrrw.streamlit.app/" & sleep 60
-        curl -L "https://calculation-of-oil-tax-fsdt98ampwhs5pzpfzuhsy.streamlit.app/" & sleep 60
-        curl -L "https://calculation-of-tax-bfapeep5eknsp2xxs5kfij.streamlit.app/" & sleep 60
+        echo "Начало в: $(date '+%H:%M:%S')"
         
-        echo "Запросы отправлены"
-        wait
+        # Используем background processes для параллельного прогрева
+        curl -s -L --max-time 45 "https://calculation-of-land-tax-4sx2mxfrtshecl77uvz7l6.streamlit.app/" &
+        PID1=$!
+        
+        curl -s -L --max-time 45 "https://calculation-eco-tax-xfu9rozazao4heudm3p6gz.streamlit.app/" &
+        PID2=$!
+        
+        curl -s -L --max-time 45 "https://calculation-of-excise-bnrlk8d8pnf4wpwhwvnpfj.streamlit.app/" &
+        PID3=$!
+        
+        curl -s -L --max-time 45 "https://calculation-of-mining-tax-jvospomyc4pgvpy8ubrrrw.streamlit.app/" &
+        PID4=$!
+        
+        curl -s -L --max-time 45 "https://calculation-of-oil-tax-fsdt98ampwhs5pzpfzuhsy.streamlit.app/" &
+        PID5=$!
+        
+        curl -s -L --max-time 45 "https://calculation-of-tax-bfapeep5eknsp2xxs5kfij.streamlit.app/" &
+        PID6=$!
+        
+        # Ждем завершения всех процессов
+        wait $PID1 $PID2 $PID3 $PID4 $PID5 $PID6
+        
+        echo "Завершено в: $(date '+%H:%M:%S')"
+        echo "Готово!"
