@@ -1,0 +1,73 @@
+name: 🔥 Warm Up Streamlit Calculators
+
+on:
+  schedule:
+    # Запускать каждые 10 минут
+    - cron: '*/30 * * * *'
+  # Также можно запускать вручную из интерфейса GitHub
+  workflow_dispatch:
+    inputs:
+      log_level:
+        description: 'Log level'
+        required: true
+        default: 'info'
+        type: choice
+        options:
+        - info
+        - debug
+
+jobs:
+  warmup:
+    runs-on: ubuntu-latest
+    steps:
+    - name: 📅 Check schedule
+      run: echo "Запуск прогрева калькуляторов в $(date)"
+    
+    - name: 🔥 Прогрев всех калькуляторов
+      run: |
+        # Ваши 6 калькуляторов - замените на реальные URL
+        # Если они в одном репозитории, но разные приложения:
+        # https://username-tax-calc1.streamlit.app/
+        # https://username-tax-calc2.streamlit.app/
+        
+        echo "Начинаем прогрев калькуляторов..."
+        
+        # Массив с URL ваших калькуляторов
+        # ЗАМЕНИТЕ ЭТИ URL НА ВАШИ РЕАЛЬНЫЕ!
+        CALCULATORS=(
+          "https://calculation-of-land-tax-4sx2mxfrtshecl77uvz7l6.streamlit.app/"
+          "https://calculation-eco-tax-xfu9rozazao4heudm3p6gz.streamlit.app/"
+          "https://calculation-of-excise-bnrlk8d8pnf4wpwhwvnpfj.streamlit.app/"
+          "https://calculation-of-mining-tax-jvospomyc4pgvpy8ubrrrw.streamlit.app/"
+          "https://calculation-of-oil-tax-fsdt98ampwhs5pzpfzuhsy.streamlit.app/"
+          "https://calculation-of-tax-bfapeep5eknsp2xxs5kfij.streamlit.app/"
+        )
+        
+        for url in "${CALCULATORS[@]}"; do
+          echo "Прогреваем: $url"
+          
+          # Отправляем запрос с таймаутом
+          # Добавляем случайный параметр, чтобы избежать кэширования
+          timestamp=$(date +%s)
+          full_url="${url}?_warmup=${timestamp}"
+          
+          # Пробуем получить ответ (не только заголовки)
+          response_code=$(curl -s -o /dev/null -w "%{http_code}" -m 120 "$full_url")
+          
+          if [ "$response_code" -eq 200 ] || [ "$response_code" -eq 403 ] || [ "$response_code" -lt 500 ]; then
+            echo "✅ Успех: HTTP $response_code"
+          else
+            echo "⚠️ Предупреждение: HTTP $response_code"
+          fi
+          
+          # Пауза между запросами, чтобы не перегружать
+          sleep 3
+        done
+        
+        echo "✅ Прогрев завершен!"
+        
+    - name: 📊 Логирование
+      if: always()
+      run: |
+        echo "Workflow завершен в $(date)"
+        echo "Для подробной информации проверьте шаг 'Прогрев всех калькуляторов'"
