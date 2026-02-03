@@ -1,6 +1,21 @@
 import streamlit as st
 import pandas as pd
 import re
+import time
+
+# Получаем параметры URL
+query_params = st.experimental_get_query_params()
+
+# Проверяем, это запрос для прогрева
+if "_warmup" in query_params:
+    # Минимальный ответ для прогрева
+    st.write("OK")
+    
+    # Небольшая пауза, чтобы убедиться, что приложение запущено
+    time.sleep(1)
+    
+    # Останавливаем дальнейшее выполнение
+    st.stop()
 
 def parse_rate(value):
     if pd.isna(value):
@@ -82,5 +97,6 @@ col1, col2, col3 = st.columns(3)
 with col1: st.metric("Налог 2025", f"{tax_2025:.2f} BYN")
 with col2: st.metric("Налог 2026", f"{tax_2026:.2f} BYN")
 with col3: st.metric("Рост", f"{growth_abs:.2f} BYN", delta=f"+{growth_pct:.1f}%")
+
 
 
