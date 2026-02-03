@@ -1,5 +1,20 @@
 import streamlit as st
 import pandas as pd
+import time
+
+# Получаем параметры URL
+query_params = st.experimental_get_query_params()
+
+# Проверяем, это запрос для прогрева
+if "_warmup" in query_params:
+    # Минимальный ответ для прогрева
+    st.write("OK")
+    
+    # Небольшая пауза, чтобы убедиться, что приложение запущено
+    time.sleep(1)
+    
+    # Останавливаем дальнейшее выполнение
+    st.stop()
 
 # === Загрузка и очистка данных (как в вашем скрипте) ===
 @st.cache_data
@@ -52,4 +67,5 @@ col1.metric("Налог 2025", f"{tax_2025:,.0f} BYN")
 col2.metric("Налог 2026", f"{tax_2026:,.0f} BYN")
 
 st.metric("Разница", f"{diff_abs:,.0f} BYN", delta=f"+{diff_pct:.1f}%")
+
 
