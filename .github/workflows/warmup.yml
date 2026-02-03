@@ -1,50 +1,45 @@
-# .github/workflows/warmup-proper.yml
+# .github/workflows/warmup.yml
 name: 🔥 Прогрев калькуляторов
 
 on:
   schedule:
-    # Каждые 20 минут для экономии лимитов
+    # Каждые 30 минут
     - cron: '0,30 * * * *'
   workflow_dispatch:
 
 jobs:
   warmup:
     runs-on: ubuntu-latest
-    timeout-minutes: 15  # Общий лимит на весь job
     
     steps:
     - name: 🔥 Прогрев
       run: |
         echo "=== ПРОГРЕВ ЗАПУЩЕН ==="
-        echo "Время: $(date '+%H:%M:%S')"
-        echo ""
+        date
         
-        CALCULATORS=(
-          "https://calculation-of-land-tax-4sx2mxfrtshecl77uvz7l6.streamlit.app/"
-          "https://calculation-eco-tax-xfu9rozazao4heudm3p6gz.streamlit.app/"
-          "https://calculation-of-excise-bnrlk8d8pnf4wpwhwvnpfj.streamlit.app/"
-          "https://calculation-of-mining-tax-jvospomyc4pgvpy8ubrrrw.streamlit.app/"
-          "https://calculation-of-oil-tax-fsdt98ampwhs5pzpfzuhsy.streamlit.app/"
-          "https://calculation-of-tax-bfapeep5eknsp2xxs5kfij.streamlit.app/"
-        )
+        # Ваши калькуляторы
+        URL1="https://calculation-of-land-tax-4sx2mxfrtshecl77uvz7l6.streamlit.app/"
+        URL2="https://calculation-eco-tax-xfu9rozazao4heudm3p6gz.streamlit.app/"
+        URL3="https://calculation-of-excise-bnrlk8d8pnf4wpwhwvnpfj.streamlit.app/"
+        URL4="https://calculation-of-mining-tax-jvospomyc4pgvpy8ubrrrw.streamlit.app/"
+        URL5="https://calculation-of-oil-tax-fsdt98ampwhs5pzpfzuhsy.streamlit.app/"
+        URL6="https://calculation-of-tax-bfapeep5eknsp2xxs5kfij.streamlit.app/"
         
-        for url in "${CALCULATORS[@]}"; do
-          echo "🔄 $(echo $url | cut -d'/' -f3)"
-          
-          # Увеличиваем таймаут до 120 секунд и добавляем retry
-          response=$(curl -s -L \
-            -o /dev/null \
-            -w "Статус: %{http_code}, Время: %{time_total}с\n" \
-            -m 120 \          # 120 секунд вместо 60
-            --retry 2 \       # 2 попытки при ошибках
-            --retry-delay 5 \ # Пауза 5 секунд между попытками
-            --retry-max-time 300 \ # Максимум 5 минут на все попытки
-            "$url?_warmup_$(date +%s)=1" 2>&1)
-          
-          echo "   $response"
-          
+        # Функция для прогрева
+        warm_up() {
+          echo "Прогрев: $1"
+          curl -s -L -o /dev/null -m 180 "$1?_warmup=$(date +%s)"
+          echo "Статус: $?"
           sleep 5
-          echo ""
-        done
+        }
         
-        echo "✅ Готово!"
+        # Прогреваем по одному
+        warm_up "$URL1"
+        warm_up "$URL2"
+        warm_up "$URL3"
+        warm_up "$URL4"
+        warm_up "$URL5"
+        warm_up "$URL6"
+        
+        echo "✅ ПРОГРЕВ ЗАВЕРШЕН"
+        date
