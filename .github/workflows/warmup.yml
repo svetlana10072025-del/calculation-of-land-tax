@@ -1,42 +1,57 @@
 # .github/workflows/warmup.yml
-name: Прогрев калькуляторов
+name: 🔥 Прогрев калькуляторов
 
 on:
   schedule:
-    - cron: '0,30 * * * *'
+    - cron: '0,30 * * * *'  # Каждые 30 минут: 00 и 30 минута каждого часа
   workflow_dispatch:
 
 jobs:
   warmup:
     runs-on: ubuntu-latest
-    timeout-minutes: 5  # Максимум 5 минут на весь workflow
-    
     steps:
-    - name: Быстрый прогрев
+    - name: 🔥 Прогрев калькуляторов
       run: |
-        echo "Начало в: $(date '+%H:%M:%S')"
+        echo "=== НАЧАЛО ПРОГРЕВА ==="
+        echo "Время: $(date '+%H:%M:%S')"
+        echo ""
         
-        # Используем background processes для параллельного прогрева
-        curl -s -L --max-time 45 "https://calculation-of-land-tax-4sx2mxfrtshecl77uvz7l6.streamlit.app/" &
-        PID1=$!
+        CALCULATORS=(
+          "https://calculation-of-land-tax-4sx2mxfrtshecl77uvz7l6.streamlit.app/"
+          "https://calculation-eco-tax-xfu9rozazao4heudm3p6gz.streamlit.app/"
+          "https://calculation-of-excise-bnrlk8d8pnf4wpwhwvnpfj.streamlit.app/"
+          "https://calculation-of-mining-tax-jvospomyc4pgvpy8ubrrrw.streamlit.app/"
+          "https://calculation-of-oil-tax-fsdt98ampwhs5pzpfzuhsy.streamlit.app/"
+          "https://calculation-of-tax-bfapeep5eknsp2xxs5kfij.streamlit.app/"
+        )
         
-        curl -s -L --max-time 45 "https://calculation-eco-tax-xfu9rozazao4heudm3p6gz.streamlit.app/" &
-        PID2=$!
+        SUCCESS_COUNT=0
+        TOTAL_COUNT=${#CALCULATORS[@]}
         
-        curl -s -L --max-time 45 "https://calculation-of-excise-bnrlk8d8pnf4wpwhwvnpfj.streamlit.app/" &
-        PID3=$!
+        for url in "${CALCULATORS[@]}"; do
+          echo "🔄 Прогреваем: $(echo $url | cut -d'/' -f3)"
+          
+          TIMESTAMP=$(date +%s)
+          FULL_URL="${url}?warmup=${TIMESTAMP}&from=github"
+          
+          HTTP_CODE=$(curl -L -s -o /dev/null \
+               -w "%{http_code}" \
+               -m 25 \
+               --retry 2 \
+               --retry-delay 1 \
+               --user-agent "Mozilla/5.0 (GitHub Actions)" \
+               "$FULL_URL")
+          
+          if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "201" ]; then
+            echo "✅ HTTP $HTTP_CODE"
+            ((SUCCESS_COUNT++))
+          else
+            echo "⚠️  HTTP $HTTP_CODE"
+          fi
+          
+          echo "---"
+          sleep 2
+        done
         
-        curl -s -L --max-time 45 "https://calculation-of-mining-tax-jvospomyc4pgvpy8ubrrrw.streamlit.app/" &
-        PID4=$!
-        
-        curl -s -L --max-time 45 "https://calculation-of-oil-tax-fsdt98ampwhs5pzpfzuhsy.streamlit.app/" &
-        PID5=$!
-        
-        curl -s -L --max-time 45 "https://calculation-of-tax-bfapeep5eknsp2xxs5kfij.streamlit.app/" &
-        PID6=$!
-        
-        # Ждем завершения всех процессов
-        wait $PID1 $PID2 $PID3 $PID4 $PID5 $PID6
-        
-        echo "Завершено в: $(date '+%H:%M:%S')"
-        echo "Готово!"
+        echo "=== ПРОГРЕВ ЗАВЕРШЕН ==="
+        echo "Результат: $SUCCESS_COUNT/$TOTAL_COUNT"
