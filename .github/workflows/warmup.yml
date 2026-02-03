@@ -3,7 +3,7 @@ name: 🔥 Прогрев калькуляторов
 
 on:
   schedule:
-    - cron: '0,30 * * * *'  # Каждые 30 минут: 00 и 30 минута каждого часа
+    - cron: '0,30 * * * *'  # Каждые 30 минут (48 раз/сутки)
   workflow_dispatch:
 
 jobs:
@@ -12,8 +12,11 @@ jobs:
     steps:
     - name: 🔥 Прогрев калькуляторов
       run: |
-        echo "=== НАЧАЛО ПРОГРЕВА ==="
-        echo "Время: $(date '+%H:%M:%S')"
+        # Отключаем аварийное завершение при ошибках отдельных команд
+        set +e
+        
+        echo "=== 🔥 НАЧАЛО ПРОГРЕВА ==="
+        echo "Время: $(date '+%Y-%m-%d %H:%M:%S %Z')"
         echo ""
         
         CALCULATORS=(
@@ -25,33 +28,40 @@ jobs:
           "https://calculation-of-tax-bfapeep5eknsp2xxs5kfij.streamlit.app/"
         )
         
-        SUCCESS_COUNT=0
-        TOTAL_COUNT=${#CALCULATORS[@]}
+        SUCCESS=0
+        TOTAL=${#CALCULATORS[@]}
         
         for url in "${CALCULATORS[@]}"; do
-          echo "🔄 Прогреваем: $(echo $url | cut -d'/' -f3)"
+          DOMAIN=$(echo "$url" | cut -d'/' -f3)
+          echo -n "🔄 $DOMAIN ... "
           
+          # Ключевые исправления:
+          # 1. --max-redirs 8 — предотвращает ошибку 47 (бесконечные редиректы)
+          # 2. -f — не выводит тело ответа при 404/500
+          # 3. 2>/dev/null || echo "ERR" — подавляем ошибки stderr
           TIMESTAMP=$(date +%s)
-          FULL_URL="${url}?warmup=${TIMESTAMP}&from=github"
-          
-          HTTP_CODE=$(curl -L -s -o /dev/null \
-               -w "%{http_code}" \
-               -m 25 \
-               --retry 2 \
-               --retry-delay 1 \
-               --user-agent "Mozilla/5.0 (GitHub Actions)" \
-               "$FULL_URL")
+          HTTP_CODE=$(curl -L -f --max-redirs 8 \
+            -s -o /dev/null \
+            -w "%{http_code}" \
+            -m 20 \
+            --retry 2 \
+            --retry-delay 1 \
+            --user-agent "Mozilla/5.0 (compatible; GitHub-Actions/1.0)" \
+            "${url}?ts=${TIMESTAMP}" 2>/dev/null || echo "ERR")
           
           if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "201" ]; then
-            echo "✅ HTTP $HTTP_CODE"
-            ((SUCCESS_COUNT++))
+            echo "✅ $HTTP_CODE"
+            SUCCESS=$((SUCCESS + 1))
           else
-            echo "⚠️  HTTP $HTTP_CODE"
+            echo "⚠️ $HTTP_CODE"
           fi
           
-          echo "---"
-          sleep 2
+          sleep 1.5
         done
         
-        echo "=== ПРОГРЕВ ЗАВЕРШЕН ==="
-        echo "Результат: $SUCCESS_COUNT/$TOTAL_COUNT"
+        echo ""
+        echo "=== ✅ ПРОГРЕВ ЗАВЕРШЕН ==="
+        echo "Статистика: $SUCCESS/$TOTAL калькуляторов активны"
+        
+        # ВСЕГДА завершаем с кодом 0 — прогрев не должен падать workflow
+        exit 0
