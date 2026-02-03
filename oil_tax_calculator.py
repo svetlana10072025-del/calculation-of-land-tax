@@ -1,5 +1,20 @@
 import streamlit as st
 import pandas as pd
+import time
+
+# Получаем параметры URL
+query_params = st.experimental_get_query_params()
+
+# Проверяем, это запрос для прогрева
+if "_warmup" in query_params:
+    # Минимальный ответ для прогрева
+    st.write("OK")
+    
+    # Небольшая пауза, чтобы убедиться, что приложение запущено
+    time.sleep(1)
+    
+    # Останавливаем дальнейшее выполнение
+    st.stop()
 
 st.title("Калькулятор налога за добычу нефти (Беларусь, 2026)")
 
@@ -81,4 +96,5 @@ with st.expander("Детали"):
     st.write(f"**Ценовой диапазон:** {price_range_label}")
     st.write(f"**Ставка 2025:** {stavka_2025} BYN/тонну")
     st.write(f"**Ставка 2026:** {stavka_2026} BYN/тонну")
+
     st.write(f"**Объём:** {quantity} тонн")
