@@ -1,0 +1,25 @@
+
+name: Прогрев калькуляторов
+
+on:
+  schedule:
+    - cron: '0,30 * * * *'
+  workflow_dispatch:
+
+jobs:
+  warmup:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Прогрев
+      run: |
+        # Просто отправляем запросы без проверки результата
+        curl -L "https://calculation-of-land-tax-4sx2mxfrtshecl77uvz7l6.streamlit.app/" & sleep 60
+        curl -L "https://calculation-eco-tax-xfu9rozazao4heudm3p6gz.streamlit.app/" & sleep 60
+        curl -L "https://calculation-of-excise-bnrlk8d8pnf4wpwhwvnpfj.streamlit.app/" & sleep 60
+        curl -L "https://calculation-of-mining-tax-jvospomyc4pgvpy8ubrrrw.streamlit.app/" & sleep 60
+        curl -L "https://calculation-of-oil-tax-fsdt98ampwhs5pzpfzuhsy.streamlit.app/" & sleep 60
+        curl -L "https://calculation-of-tax-bfapeep5eknsp2xxs5kfij.streamlit.app/" & sleep 60
+        
+        echo "Запросы отправлены"
+        wait
