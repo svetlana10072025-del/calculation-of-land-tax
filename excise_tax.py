@@ -1,5 +1,20 @@
 import streamlit as st
 import pandas as pd
+import time
+
+# Получаем параметры URL
+query_params = st.experimental_get_query_params()
+
+# Проверяем, это запрос для прогрева
+if "_warmup" in query_params:
+    # Минимальный ответ для прогрева
+    st.write("OK")
+    
+    # Небольшая пауза, чтобы убедиться, что приложение запущено
+    time.sleep(1)
+    
+    # Останавливаем дальнейшее выполнение
+    st.stop()
 
 st.title("Калькулятор акцизов (Беларусь, 2025–2026)")
 
@@ -47,4 +62,5 @@ with col3:
 with st.expander("Детали"):
     st.write(f"**Ставка 2025:** {stavka_2025} BYN/{unit}")
     st.write(f"**Ставка 2026:** {stavka_2026} BYN/{unit}")
+
     st.write(f"**Количество:** {quantity} {unit}")
